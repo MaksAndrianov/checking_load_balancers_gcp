@@ -90,8 +90,8 @@ def discovery(token, product_id):
                         if lb:
                             region = region.split("/")[-1]
                             body = (body + "{" + f'"{macros_product_id}": "{product_id}",' +
-                                                 f'"{macros_region}": "{region.split("/")[-1]}",' +
-                                                 f'"{macros_name}": "{lb}"' + "},")
+                                    f'"{macros_region}": "{region.split("/")[-1]}",' +
+                                    f'"{macros_name}": "{lb}"' + "},")
 
     data = "{ \"data\": [" + body[:-1] + "] }"
     print(data)
@@ -107,7 +107,7 @@ def main():
         if args.key:
             token = get_token(args.key, debug)
         else:
-            print("Use either --token <YOUR_TOKEN> or --key <PATH TO YOUR FILE>.")
+            print("Use either --token <YOUR_TOKEN> or --key <PATH_TO_YOUR_FILE>.")
             sys.exit(1)
 
     # You can pass the product_id as an argument --product_id or store it in a variable.
@@ -122,22 +122,31 @@ def main():
 
     if args.discovery:
         if args.product_id is None:
-            print("You must specify the product id as argument --product_id or write it to a variable product_id")
+            print(f"You must specify the product id as argument --product_id <PRODUCT_ID_NAME> "
+                  "or write it to a variable product_id")
         else:
-            discovery(token, product_id)
+            if isinstance(product_id, list):
+                for id in product_id:
+                    discovery(token, id)
+            else:
+                discovery(token, product_id)
 
     if args.check:
         if args.product_id is None:
-            print("You must specify the product id as argument --product_id or write it to a variable product_id")
+            print("You must specify the product id as argument --product_id <PRODUCT_ID_NAME> "
+                  "or write it to a variable product_id")
             sys.exit(1)
         if args.region is None:
-            print("You must specify the region as an argument --region")
+            print("You must specify the region as an argument --region <REGION_NAME>")
             sys.exit(1)
         if args.name is None:
-            print("You must specify the service name as argument --name")
+            print("You must specify the service name as argument --name <LOAD_BALANCER_NAME>")
             sys.exit(1)
-
-        get_health(token, product_id, args.region, args.name)
+        if isinstance(product_id, list):
+            for id in product_id:
+                get_health(token, id, args.region, args.name)
+        else:
+            discovery(token, product_id)
 
 
 if __name__ == "__main__":
