@@ -11,6 +11,8 @@ def parse_arguments():
     parser.add_argument('--key', action='store', nargs='?', type=str, required=True, default=None)
     parser.add_argument('--discovery', action='count', default=0)
     parser.add_argument('--product_id', action='store', nargs='?', type=str, default=None)
+    parser.add_argument('--region', action='store', nargs='?', type=str, default=None)
+    parser.add_argument('--name', action='store', nargs='?', type=str, default=None)
     parser.add_argument('-d', '--debug', action='count', default=0)
     args = parser.parse_args()
     return args
@@ -79,8 +81,7 @@ def discovery(token, product_id):
                             body = (body + "{" + f'"{macros_product_id}": "{product_id}",' +
                                                  f'"{macros_region}": "{region.split("/")[-1]}",' +
                                                  f'"{macros_name}": "{lb}"' + "},")
-    else:
-        body = ""
+
     data = "{ \"data\": [" + body[:-1] + "] }"
     print(data)
 
