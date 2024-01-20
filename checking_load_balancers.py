@@ -8,8 +8,10 @@ import sys
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='...')
-    parser.add_argument('--key', action='store', nargs='?', type=str, required=True, default=None)
+    parser.add_argument('--key', action='store', nargs='?', type=str, default=None)
+    parser.add_argument('--token', action='store', nargs='?', type=str, default=None)
     parser.add_argument('--discovery', action='count', default=0)
+    parser.add_argument('--check', action='count', default=0)
     parser.add_argument('--product_id', action='store', nargs='?', type=str, default=None)
     parser.add_argument('--region', action='store', nargs='?', type=str, default=None)
     parser.add_argument('--name', action='store', nargs='?', type=str, default=None)
@@ -53,14 +55,23 @@ def get_backend_services(token, product_id):
 
 def get_health(token, product_id, region, lb):
     if region != "global":
-        region = f"regions/{region}"
-    url = f"https://compute.googleapis.com/compute/v1/projects/{product_id}/{region}/backendServices/{lb}?alt=json"
+        get_group_url = f"https://compute.googleapis.com/compute/v1/projects/{product_id}/regions/{region}/backendServices/{lb}?alt=json"
+        get_health_url = f"https://compute.googleapis.com/compute/v1/projects/{product_id}/regions/{region}/backendServices/{lb}/getHealth?alt=json"
+    else:
+        get_group_url = f"https://compute.googleapis.com/compute/v1/projects/{product_id}/{region}/backendServices/{lb}?alt=json"
+        get_health_url = f"https://compute.googleapis.com/compute/v1/projects/{product_id}/{region}/backendServices/{lb}/getHealth?alt=json"
+
     headers = {
         "Accept": "application/json",
         "Accept-Encoding": "gzip, deflate",
         "Authorization": f"Bearer {token}",
     }
-    response = requests.get(url, headers=headers)
+    get_group_response = requests.get(get_group_url, headers=headers).json()
+
+    data = {
+        "group": get_group_response['backends'][0]['group']
+    }
+    response = requests.post(get_health_url, headers=headers, json=data)
     print(response.json())
 
 
@@ -90,20 +101,43 @@ def main():
     args = parse_arguments()
 
     debug = args.debug
+    if args.token:
+        token = args.token
+    else:
+        if args.key:
+            token = get_token(args.key, debug)
+        else:
+            print("Use either --token <YOUR_TOKEN> or --key <PATH TO YOUR FILE>.")
+            sys.exit(1)
 
     # You can pass the product_id as an argument --product_id or store it in a variable.
     if args.product_id:
         product_id = args.product_id
     else:
-        product_id = []
-
-    token = get_token(args.key, debug)
+        # For example
+        # product_id = "europe-location-1234"
+        # or
+        # product_id = ["europe-location-1234", "europe-location-5678", ... ]
+        product_id = None
 
     if args.discovery:
-        discovery(token, product_id)
+        if args.product_id is None:
+            print("You must specify the product id as argument --product_id or write it to a variable product_id")
+        else:
+            discovery(token, product_id)
 
-    #get_backend_services(token, product_id)
-    #get_health(token, product_id, region, name)
+    if args.check:
+        if args.product_id is None:
+            print("You must specify the product id as argument --product_id or write it to a variable product_id")
+            sys.exit(1)
+        if args.region is None:
+            print("You must specify the region as an argument --region")
+            sys.exit(1)
+        if args.name is None:
+            print("You must specify the service name as argument --name")
+            sys.exit(1)
+
+        get_health(token, product_id, args.region, args.name)
 
 
 if __name__ == "__main__":
