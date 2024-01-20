@@ -1,20 +1,36 @@
+__author__ = 'Maksim Andrianov <r.m.andrianov@yandex.ru>'
+
 import subprocess
 import requests
 import argparse
+import sys
 
 
-def get_token(key_path):
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='...')
+    parser.add_argument('--key', action='store', nargs='?', type=str, required=True, default=None)
+    parser.add_argument('--discovery', action='count', default=0)
+    parser.add_argument('--product_id', action='store', nargs='?', type=str, default=None)
+    parser.add_argument('-d', '--debug', action='count', default=0)
+    args = parser.parse_args()
+    return args
+
+
+def get_token(key_path, debug):
     auth_cmd = f"gcloud auth activate-service-account --key-file={key_path}"
     get_token_cmd = "gcloud auth print-access-token"
 
     auth_pr = subprocess.Popen(auth_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    token_pr = subprocess.Popen(get_token_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
     output_auth, error_auth = auth_pr.communicate()
-    token, error_token = token_pr.communicate()
 
-    print(error_auth.decode("utf-8"))
-    return token.decode("utf-8").strip()
+    if "Activated service account credentials for" in error_auth.decode("utf-8"):
+        token_pr = subprocess.Popen(get_token_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        token, error_token = token_pr.communicate()
+        return token.decode("utf-8").strip()
+    else:
+        if debug:
+            print(error_auth.decode("utf-8"))
+        sys.exit(1)
 
 
 def get_backend_services(token, product_id):
@@ -70,15 +86,17 @@ def discovery(token, product_id):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='...')
-    parser.add_argument('--key', action='store', nargs='?', type=str, required=True, default=None)
-    parser.add_argument('--discovery', action='count', default=0)
-    parser.add_argument('--debug', action='count', default=0)
-    args = parser.parse_args()
+    args = parse_arguments()
 
-    token = get_token(args.key)
+    debug = args.debug
 
-    #key = "test-key.json"
+    # You can pass the product_id as an argument --product_id or store it in a variable.
+    if args.product_id:
+        product_id = args.product_id
+    else:
+        product_id = []
+
+    token = get_token(args.key, debug)
 
     if args.discovery:
         discovery(token, product_id)
