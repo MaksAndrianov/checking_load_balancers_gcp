@@ -62,7 +62,7 @@ def check(url):
         if node["healthState"] != "HEALTHY":
             node_err += 1
 
-    if node_err == nodes:
+    if node_err == nodes or nodes == 0:
         print(1)
     elif node_err > 1:
         print(2)
