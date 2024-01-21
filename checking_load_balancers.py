@@ -148,7 +148,7 @@ def main():
         product_id = None
 
     if args.discovery:
-        if args.product_id is None:
+        if product_id is None:
             print(f"You must specify the product id as argument --product_id <PRODUCT_ID_NAME_1> <PRODUCT_ID_NAME_2>"
                   "or write it to a variable product_id")
         else:
