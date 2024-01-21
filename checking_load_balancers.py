@@ -14,7 +14,7 @@ def parse_arguments():
     parser.add_argument('--token', action='store', nargs='?', type=str, default=None)
     parser.add_argument('--discovery', action='count', default=0)
     parser.add_argument('--check', action='count', default=0)
-    parser.add_argument('--product_id', action='store', nargs='?', type=str, default=None)
+    parser.add_argument('--product_id', action='store', nargs='+', type=str, default=None)
     parser.add_argument('--region', action='store', nargs='?', type=str, default=None)
     parser.add_argument('--name', action='store', nargs='?', type=str, default=None)
     parser.add_argument('-d', '--debug', action='count', default=0)
@@ -51,9 +51,7 @@ def get_backend_services(token, product_id):
     if response.status_code == 200:
         return response.json()
     else:
-        # TODO
-        # Write a correct error description
-        print("Error 1")
+        print(f"Error: {response.json()["error"]["message"]}")
         sys.exit(1)
 
 
@@ -99,13 +97,9 @@ def get_health(token, product_id, region, lb, debug):
             if debug:
                 print(json.dumps(response.json(), ensure_ascii=False))
         else:
-            # TODO
-            # Write a correct error description
-            print("Error 2")
+            print(f"Error: {response.json()["error"]["message"]}")
     else:
-        # TODO
-        # Write a correct error description
-        print("Error 3")
+        print(f"Error: {get_group_response.json()["error"]["message"]}")
 
 
 def discovery(token, product_id):
@@ -155,19 +149,17 @@ def main():
 
     if args.discovery:
         if args.product_id is None:
-            print(f"You must specify the product id as argument --product_id <PRODUCT_ID_NAME> "
+            print(f"You must specify the product id as argument --product_id <PRODUCT_ID_NAME_1> <PRODUCT_ID_NAME_2>"
                   "or write it to a variable product_id")
         else:
-            if isinstance(product_id, list):
-                for product in product_id:
-                    discovery(token, product)
-            else:
-                discovery(token, product_id)
+            for product in product_id:
+                discovery(token, product)
 
     if args.check:
-        if args.product_id is None:
-            print("You must specify the product id as argument --product_id <PRODUCT_ID_NAME> "
-                  "or write it to a variable product_id")
+        if product_id is None or len(product_id) > 1:
+            print("You must specify the product id as argument --product_id <PRODUCT_ID_NAME>"
+                  " or write it to a variable product_id")
+            print("!!! In the check you need to specify only one parameter product_id !!!")
             sys.exit(1)
         if args.region is None:
             print("You must specify the region as an argument --region <REGION_NAME>")
@@ -175,11 +167,8 @@ def main():
         if args.name is None:
             print("You must specify the service name as argument --name <LOAD_BALANCER_NAME>")
             sys.exit(1)
-        if isinstance(product_id, list):
-            for product in product_id:
-                get_health(token, product, args.region, args.name, debug)
-        else:
-            get_health(token, product_id, args.region, args.name, debug)
+
+        get_health(token, product_id, args.region, args.name, debug)
 
 
 if __name__ == "__main__":
