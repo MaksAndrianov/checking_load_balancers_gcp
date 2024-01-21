@@ -6,6 +6,7 @@ import argparse
 import sys
 import json
 
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description='...')
     parser.add_argument('--key', action='store', nargs='?', type=str, default=None)
