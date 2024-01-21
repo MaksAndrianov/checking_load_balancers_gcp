@@ -4,7 +4,7 @@ import subprocess
 import requests
 import argparse
 import sys
-
+import json
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='...')
@@ -55,6 +55,23 @@ def get_backend_services(token, product_id):
         sys.exit(1)
 
 
+def check(url):
+    nodes = len(url["healthStatus"])
+    node_err = 0
+    for node in url["healthStatus"]:
+        if node["healthState"] != "HEALTHY":
+            node_err += 1
+
+    if node_err == nodes:
+        print(1)
+    elif node_err > 1:
+        print(2)
+    elif node_err == 1:
+        print(3)
+    else:
+        print(0)
+
+
 def get_health(token, product_id, region, lb, debug):
     if region != "global":
         get_group_url = f"https://compute.googleapis.com/compute/v1/projects/{product_id}/regions/{region}/backendServices/{lb}?alt=json"
@@ -76,7 +93,9 @@ def get_health(token, product_id, region, lb, debug):
         }
         response = requests.post(get_health_url, headers=headers, json=data)
         if response.status_code == 200:
-            print(response.json())
+            check(response.json())
+            if debug:
+                print(json.dumps(response.json(), ensure_ascii=False))
         else:
             # TODO
             # Write a correct error description
