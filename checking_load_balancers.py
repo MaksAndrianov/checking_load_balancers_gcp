@@ -20,7 +20,7 @@ def parse_arguments():
     return args
 
 
-def get_token(key_path, debug):
+def get_token(key_path):
     auth_cmd = f"gcloud auth activate-service-account --key-file={key_path}"
     get_token_cmd = "gcloud auth print-access-token"
 
@@ -32,8 +32,7 @@ def get_token(key_path, debug):
         token, error_token = token_pr.communicate()
         return token.decode("utf-8").strip()
     else:
-        if debug:
-            print(error_auth.decode("utf-8"))
+        print(error_auth.decode("utf-8"))
         sys.exit(1)
 
 
@@ -50,10 +49,13 @@ def get_backend_services(token, product_id):
     if response.status_code == 200:
         return response.json()
     else:
-        return None
+        # TODO
+        # Write a correct error description
+        print("Error 1")
+        sys.exit(1)
 
 
-def get_health(token, product_id, region, lb):
+def get_health(token, product_id, region, lb, debug):
     if region != "global":
         get_group_url = f"https://compute.googleapis.com/compute/v1/projects/{product_id}/regions/{region}/backendServices/{lb}?alt=json"
         get_health_url = f"https://compute.googleapis.com/compute/v1/projects/{product_id}/regions/{region}/backendServices/{lb}/getHealth?alt=json"
@@ -66,13 +68,23 @@ def get_health(token, product_id, region, lb):
         "Accept-Encoding": "gzip, deflate",
         "Authorization": f"Bearer {token}",
     }
-    get_group_response = requests.get(get_group_url, headers=headers).json()
-
-    data = {
-        "group": get_group_response['backends'][0]['group']
-    }
-    response = requests.post(get_health_url, headers=headers, json=data)
-    print(response.json())
+    get_group_response = requests.get(get_group_url, headers=headers)
+    if get_group_response.status_code == 200:
+        get_group_response = get_group_response.json()
+        data = {
+            "group": get_group_response['backends'][0]['group']
+        }
+        response = requests.post(get_health_url, headers=headers, json=data)
+        if response.status_code == 200:
+            print(response.json())
+        else:
+            # TODO
+            # Write a correct error description
+            print("Error 2")
+    else:
+        # TODO
+        # Write a correct error description
+        print("Error 3")
 
 
 def discovery(token, product_id):
@@ -105,7 +117,7 @@ def main():
         token = args.token
     else:
         if args.key:
-            token = get_token(args.key, debug)
+            token = get_token(args.key)
         else:
             print("Use either --token <YOUR_TOKEN> or --key <PATH_TO_YOUR_FILE>.")
             sys.exit(1)
@@ -126,8 +138,8 @@ def main():
                   "or write it to a variable product_id")
         else:
             if isinstance(product_id, list):
-                for id in product_id:
-                    discovery(token, id)
+                for product in product_id:
+                    discovery(token, product)
             else:
                 discovery(token, product_id)
 
@@ -143,10 +155,10 @@ def main():
             print("You must specify the service name as argument --name <LOAD_BALANCER_NAME>")
             sys.exit(1)
         if isinstance(product_id, list):
-            for id in product_id:
-                get_health(token, id, args.region, args.name)
+            for product in product_id:
+                get_health(token, product, args.region, args.name, debug)
         else:
-            discovery(token, product_id)
+            get_health(token, product_id, args.region, args.name, debug)
 
 
 if __name__ == "__main__":
