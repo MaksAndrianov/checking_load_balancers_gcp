@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 __author__ = 'Maksim Andrianov <r.m.andrianov@yandex.ru>'
 
 import subprocess
